@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Employee;
 use App\Http\Controllers\Controller;
 use App\Models\Item;
 use App\Models\SupplyRequest;
+use App\Policies\SupplyRequestPolicy;
 use Illuminate\Http\Request;
 
 class SupplyRequestController extends Controller
@@ -65,9 +66,7 @@ class SupplyRequestController extends Controller
     public function show(SupplyRequest $supplyRequest)
     {
         
-        if ($supplyRequest->employee_id !== auth()->id()) {
-            abort(403);
-        }
+        $this->authorize('view', $supplyRequest);
 
         $supplyRequest->load('requestItems.item');
         $items = Item::where('active', true)->orderBy('name')->get(); 
@@ -77,28 +76,14 @@ class SupplyRequestController extends Controller
 
     public function edit(SupplyRequest $supplyRequest)
     {
-        if ($supplyRequest->employee_id !== auth()->id()) {
-            abort(403);
-        }
-
-        if (!$supplyRequest->isDraft()) {
-            return redirect()->route('employee.requests.index')
-                             ->with('error', 'Solo se pueden editar solicitudes en borrador');
-        }
+       $this->authorize('update', $supplyRequest);
 
          return redirect()->route('employee.requests.show', $supplyRequest);
     }
 
     public function update(Request $request, SupplyRequest $supplyRequest)
     {
-        if ($supplyRequest->employee_id !== auth()->id()) {
-            abort(403);
-        }
-
-        if (!$supplyRequest->isDraft()) {
-            return redirect()->route('employee.requests.index')
-                             ->with('error', 'Solo se pueden editar solicitudes en borrador');
-        }
+        $this->authorize('update', $supplyRequest);
 
         $request->validate([
             'priority' => 'required|in:low,medium,high',
@@ -116,14 +101,7 @@ class SupplyRequestController extends Controller
 
     public function submit(SupplyRequest $supplyRequest)
     {
-        if ($supplyRequest->employee_id !== auth()->id()) {
-            abort(403);
-        }
-
-        if (!$supplyRequest->isDraft()) {
-            return redirect()->route('employee.requests.index')
-                             ->with('error', 'Solo se pueden enviar solicitudes en borrador');
-        }
+        $this->authorize('update', $supplyRequest);
 
         if ($supplyRequest->requestItems()->count() === 0) {
             return redirect()->route('employee.requests.show', $supplyRequest)
@@ -139,15 +117,7 @@ class SupplyRequestController extends Controller
 
     public function destroy(SupplyRequest $supplyRequest)
     {
-            if ($supplyRequest->employee_id !== auth()->id()) {
-            abort(403);
-        }
-
-        if (!$supplyRequest->isDraft()) {
-            return redirect()
-                ->route('employee.requests.index')
-                ->with('error', 'Solo se pueden eliminar solicitudes en borrador');
-        }
+        $this->authorize('update', $supplyRequest);
 
         // elimina primero los ítems relacionados (por seguridad)
         $supplyRequest->requestItems()->delete();
@@ -163,14 +133,7 @@ class SupplyRequestController extends Controller
     
     public function addItem(Request $request, SupplyRequest $supplyRequest)
     {
-        if ($supplyRequest->employee_id !== auth()->id()) {
-            abort(403);
-        }
-
-        if (!$supplyRequest->isDraft()) {
-            return redirect()->route('employee.requests.show', $supplyRequest)
-                            ->with('error', 'No se pueden agregar ítems a una solicitud enviada');
-        }
+        $this->authorize('update', $supplyRequest);
 
         $request->validate([
             'item_id'       => 'required|exists:items,id',
@@ -190,14 +153,7 @@ class SupplyRequestController extends Controller
 
     public function removeItem(SupplyRequest $supplyRequest, $itemId)
     {
-        if ($supplyRequest->employee_id !== auth()->id()) {
-            abort(403);
-        }
-
-        if (!$supplyRequest->isDraft()) {
-            return redirect()->route('employee.requests.show', $supplyRequest)
-                            ->with('error', 'No se pueden eliminar ítems de una solicitud enviada');
-        }
+        $this->authorize('update', $supplyRequest);
 
         $supplyRequest->requestItems()->where('id', $itemId)->delete();
 

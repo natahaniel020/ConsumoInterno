@@ -56,10 +56,10 @@ class UserController extends Controller
 
     public function edit(User $user)
     {
-        if ($user->role === 'admin') {
+        if ($user->isAdmin()) {
             abort(403);
         }
-
+            
         $departments = Department::orderBy('name')->get();
 
         return view('admin.users.edit', compact('user', 'departments'));
@@ -67,7 +67,7 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
-        if ($user->role === 'admin') {
+        if ($user->isAdmin()) {
             abort(403);
         }
 
@@ -103,14 +103,9 @@ class UserController extends Controller
                              ->with('error', 'No puedes eliminarte a ti mismo');
         }
 
-        if ($user->role === 'admin') {
+        if ($user->isAdmin()) {
             return redirect()->route('admin.users.index')
                              ->with('error', 'No se puede eliminar un administrador');
-        }
-
-        if ($user->supplyRequests()->exists()) {
-            return redirect()->route('admin.users.index')
-                             ->with('error', 'No se puede eliminar, el usuario tiene solicitudes asociadas');
         }
 
         $user->delete();
